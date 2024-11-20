@@ -1,22 +1,23 @@
 package by.bsu.dependency.context;
 
-import by.bsu.dependency.example.FirstBean;
-import by.bsu.dependency.example.OtherBean;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import by.bsu.dependency.example.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import org.junit.jupiter.api.BeforeEach;
+
 import by.bsu.dependency.exception.ApplicationContextNotStartedException;
 import by.bsu.dependency.exception.NoSuchBeanDefinitionException;
-
-class HardCodedSingletonApplicationContextTest {
-
+    
+class AutoScanApplicationContextTest {
+    
     private ApplicationContext applicationContext;
 
     @BeforeEach
     void init() {
-        applicationContext = new HardCodedSingletonApplicationContext(FirstBean.class, OtherBean.class);
+        applicationContext = new AutoScanApplicationContext("by.bsu.dependency.example");
     }
 
     @Test
@@ -29,9 +30,15 @@ class HardCodedSingletonApplicationContextTest {
     @Test
     void testContextContainsNotStarted() {
         assertThrows(
-            ApplicationContextNotStartedException.class,
-            () -> applicationContext.containsBean("firstBean")
+                ApplicationContextNotStartedException.class,
+                () -> applicationContext.containsBean("firstBean")
         );
+    }
+
+    @Test
+    void testBeanWithoutAnnotation() {
+        applicationContext.start();
+        assertThat(applicationContext.containsBean("notBean")).isFalse();
     }
 
     @Test

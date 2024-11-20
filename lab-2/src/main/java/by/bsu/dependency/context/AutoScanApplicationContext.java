@@ -1,52 +1,43 @@
 package by.bsu.dependency.context;
 
+import by.bsu.dependency.annotation.Bean;
+
+import org.reflections.Reflections;
+
+import java.util.Set;
+
+
 public class AutoScanApplicationContext extends AbstractApplicationContext {
 
-    /**
-     * Создает контекст, содержащий классы из пакета {@code packageName}, помеченные аннотацией {@code @Bean}.
-     * <br/>
-     * Если имя бина в анноации не указано ({@code name} пустой), оно берется из названия класса.
-     * <br/>
-     * Подразумевается, что у всех классов, переданных в списке, есть конструктор без аргументов.
-     *
-     * @param packageName имя сканируемого пакета
-     */
     public AutoScanApplicationContext(String packageName) {
-        throw new IllegalStateException("not implemented");
+        Reflections reflections = new Reflections(packageName);
+        Set<Class<?>> allClasses = reflections.getTypesAnnotatedWith(Bean.class);
+
+        for (Class<?> beanClass : allClasses) {
+            String beanName = getBeanName(beanClass);
+            beanDefinitions.put(beanName, beanClass);
+            isSingletonMap.put(beanName, isSingletonClass(beanClass));
+        }
+
+        checkForCyclicDependencies();
+        
     }
 
     @Override
     public void start() {
-        throw new IllegalStateException("not implemented");
-    }
+        if (status == ContextStatus.STARTED) {
+            return;
+        }
 
-    @Override
-    public boolean isRunning() {
-        throw new IllegalStateException("not implemented");
-    }
+        status = ContextStatus.STARTED;
 
-    @Override
-    public boolean containsBean(String name) {
-        throw new IllegalStateException("not implemented");
-    }
-
-    @Override
-    public Object getBean(String name) {
-        throw new IllegalStateException("not implemented");
-    }
-
-    @Override
-    public <T> T getBean(Class<T> clazz) {
-        throw new IllegalStateException("not implemented");
-    }
-
-    @Override
-    public boolean isPrototype(String name) {
-        throw new IllegalStateException("not implemented");
-    }
-
-    @Override
-    public boolean isSingleton(String name) {
-        throw new IllegalStateException("not implemented");
+        beanDefinitions.forEach((name, clazz) -> {
+            if (isSingletonMap.get(name)) {
+                Object bean = instantiateBean(clazz);
+                injectDependencies(bean);
+                invokePostConstruct(bean);
+                singletonBeans.put(name, bean);
+            }
+        });
     }
 }
